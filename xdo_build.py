@@ -427,8 +427,11 @@ int xdo_send_keysequence_window_list_do(const xdo_t *xdo, Window window,
  *    by this function.
  * @param nkeys Pointer to integer where the number of keys will be stored.
  */
-int xdo_get_active_keys_to_keycode_list(const xdo_t *xdo, charcodemap_t **keys,
-                                         int *nkeys);
+
+// commenting out because for some reason this prevents the python module from being loaded successfully:
+// ImportError: /home/user/foo/_xdo_cffi.cpython-38-x86_64-linux-gnu.so: undefined symbol: xdo_get_active_keys_to_keycode_list
+//int xdo_get_active_keys_to_keycode_list(const xdo_t *xdo, charcodemap_t **keys,
+//                                         int *nkeys);
 
 /**
  * Wait for a window to have a specific map state.
