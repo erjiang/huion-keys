@@ -44,6 +44,7 @@ def main():
         btn = get_button_press(hidraw)
         print("Got button %d" % (btn,))
         if BUTTON_BINDINGS[btn]:
+            print("Sending %s" % (BUTTON_BINDINGS[btn],))
             lib.xdo_send_keysequence_window(
                 xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
 
@@ -94,7 +95,10 @@ BUTTON_BITS = {
     0x80: 7,
 }
 
+SCROLL_STATE=None
+
 def get_button_press(hidraw):
+    global SCROLL_STATE
     while True:
         sequence = hidraw.read(12)
         # don't think there's anything we care about that doesn't start with 0xf7
@@ -111,7 +115,22 @@ def get_button_press(hidraw):
                 # must be button release (all zeros)
                 continue
         elif sequence[1] == 0xf0: # scroll strip
-            pass # TODO: implement this
+            scroll_pos = sequence[5]
+            if scroll_pos == 0:
+                # reset scroll state after lifting finger off scroll strip
+                SCROLL_STATE = None
+            elif SCROLL_STATE is not None:
+                # scroll strip is numbered from top to bottom so a greater new
+                # value means they scrolled down
+                if scroll_pos > SCROLL_STATE:
+                    SCROLL_STATE = scroll_pos
+                    return 17 # scroll down
+                elif scroll_pos < SCROLL_STATE:
+                    SCROLL_STATE = scroll_pos
+                    return 16
+            else:
+                SCROLL_STATE = scroll_pos
+                continue
 
 
 if __name__ == "__main__":
