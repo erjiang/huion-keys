@@ -1,3 +1,5 @@
+import os
+
 from _xdo_cffi import ffi, lib
 
 BUTTON_BINDINGS = [
@@ -32,7 +34,10 @@ BUTTON_BINDINGS = [
 
 def main():
     xdo = lib.xdo_new(ffi.NULL)
-    hidraw_path = get_tablet_hidraw()
+    hidraw_path = get_tablet_hidraw('256c', '006e')
+    if hidraw_path is None:
+        print("Could not find tablet hidraw device")
+    print("Found tablet at " + hidraw_path)
     hidraw = open(hidraw_path, 'rb')
     while True:
         btn = get_button_press(hidraw)
@@ -42,8 +47,19 @@ def main():
                 xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
 
 
-def get_tablet_hidraw():
-    return '/dev/hidraw3'
+def get_tablet_hidraw(vendor_id, product_id):
+    """Finds the /dev/hidrawX file that belongs to the given vendor and product ID."""
+    # TODO: is this too fragile?
+    hidraws = os.listdir('/sys/class/hidraw')
+    for h in hidraws:
+        device_path = os.readlink(os.path.join('/sys/class/hidraw', h, 'device'))
+        if ("%s:%s" % (vendor_id.upper(), product_id.upper())) in device_path:
+            # need to confirm that there's "input" because there are two hidraw
+            # files listed for the tablet, but only one of them carries the
+            # mouse/keyboard input
+            if os.path.exists(os.path.join('/sys/class/hidraw', h, 'device/input')):
+                return os.path.join('/dev', os.path.basename(h))
+    return None
 
 
 BUTTON_BITS = {
