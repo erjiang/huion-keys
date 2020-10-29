@@ -9,10 +9,10 @@ BUTTON_BINDINGS = [
     None,
     None,
 
-    b'a',
-    b'b',
-    b'c',
-    b'd',
+    None,
+    None,
+    None,
+    None,
 
     # right side, top to bottom
     None,
@@ -20,10 +20,10 @@ BUTTON_BINDINGS = [
     None,
     None,
 
-    b'e',
-    b'f',
-    b'g',
-    b'h',
+    None,
+    None,
+    None,
+    None,
 
     # scroll strip, up/down
     # even though the Kamvas 22 (2019) has two scroll strips, they both send
@@ -38,6 +38,7 @@ def main():
     if hidraw_path is None:
         print("Could not find tablet hidraw device")
     print("Found tablet at " + hidraw_path)
+    read_config(os.path.expanduser('~/.config/huion_keys.conf'))
     hidraw = open(hidraw_path, 'rb')
     while True:
         btn = get_button_press(hidraw)
@@ -60,6 +61,26 @@ def get_tablet_hidraw(vendor_id, product_id):
             if os.path.exists(os.path.join('/sys/class/hidraw', h, 'device/input')):
                 return os.path.join('/dev', os.path.basename(h))
     return None
+
+
+def read_config(config_file):
+    with open(config_file, 'r') as config:
+        for line in config.readlines():
+            # strip out any comment
+            if line.find('#') > -1:
+                line = line[:line.find('#')]
+            if line.find('='):
+                setting = line[:line.find('=')].strip()
+                value = line[line.find('=')+1:].strip()
+                if setting.isdigit():
+                    # button bindings are 0-indexed so need to subtract one
+                    BUTTON_BINDINGS[int(setting)-1] = value.encode('utf-8')
+                elif setting == 'scroll_up':
+                    BUTTON_BINDINGS[16] = value.encode('utf-8')
+                elif setting == 'scroll_down':
+                    BUTTON_BINDINGS[17] = value.encode('utf-8')
+                else:
+                    print("[WARN] unrecognized setting '%s'" % (setting,))
 
 
 BUTTON_BITS = {
