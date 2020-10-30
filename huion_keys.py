@@ -15,7 +15,10 @@ def main():
     if os.path.isfile(CONFIG_FILE_PATH):
         read_config(CONFIG_FILE_PATH)
     else:
-        write_default_config(CONFIG_FILE_PATH)
+        print("No config file found.")
+        create_default_config(CONFIG_FILE_PATH)
+        print("Created an example config file at " + CONFIG_FILE_PATH)
+        return 1
     hidraw = open(hidraw_path, 'rb')
     while True:
         btn = get_button_press(hidraw)
@@ -57,6 +60,8 @@ def read_config(config_file):
                     BUTTON_BINDINGS['scroll_up'] = value.encode('utf-8')
                 elif setting == 'scroll_down':
                     BUTTON_BINDINGS['scroll_down'] = value.encode('utf-8')
+                elif setting == '':
+                    continue # ignore empty line
                 else:
                     print("[WARN] unrecognized setting '%s'" % (setting,))
 
