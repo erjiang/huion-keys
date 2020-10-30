@@ -1,4 +1,5 @@
 import os
+import time
 
 from _xdo_cffi import ffi, lib
 
@@ -8,10 +9,6 @@ BUTTON_BINDINGS = {}
 
 def main():
     xdo = lib.xdo_new(ffi.NULL)
-    hidraw_path = get_tablet_hidraw('256c', '006e')
-    if hidraw_path is None:
-        print("Could not find tablet hidraw device")
-    print("Found tablet at " + hidraw_path)
     if os.path.isfile(CONFIG_FILE_PATH):
         read_config(CONFIG_FILE_PATH)
     else:
@@ -19,14 +16,32 @@ def main():
         create_default_config(CONFIG_FILE_PATH)
         print("Created an example config file at " + CONFIG_FILE_PATH)
         return 1
-    hidraw = open(hidraw_path, 'rb')
     while True:
-        btn = get_button_press(hidraw)
-        print("Got button %s" % (btn,))
-        if btn in BUTTON_BINDINGS:
-            print("Sending %s" % (BUTTON_BINDINGS[btn],))
-            lib.xdo_send_keysequence_window(
-                xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
+        hidraw_path = get_tablet_hidraw('256c', '006e')
+        if hidraw_path is None:
+            print("Could not find tablet hidraw device")
+            time.sleep(2)
+            continue
+        print("Found tablet at " + hidraw_path)
+        try:
+            hidraw = open(hidraw_path, 'rb')
+        except PermissionError as e:
+            print(e)
+            print("Trying again in 5 seconds...")
+            time.sleep(5)
+            continue
+        while True:
+            try:
+                btn = get_button_press(hidraw)
+            except OSError as e:
+                print("Lost connection with the tablet - searching for tablet...")
+                time.sleep(3)
+                break
+            print("Got button %s" % (btn,))
+            if btn in BUTTON_BINDINGS:
+                print("Sending %s" % (BUTTON_BINDINGS[btn],))
+                lib.xdo_send_keysequence_window(
+                    xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
 
 
 def get_tablet_hidraw(vendor_id, product_id):
