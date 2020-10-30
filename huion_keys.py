@@ -2,35 +2,9 @@ import os
 
 from _xdo_cffi import ffi, lib
 
-BUTTON_BINDINGS = [
-    # left side, top to bottom
-    None,
-    None,
-    None,
-    None,
+CONFIG_FILE_PATH = os.path.expanduser('~/.config/huion_keys.conf')
 
-    None,
-    None,
-    None,
-    None,
-
-    # right side, top to bottom
-    None,
-    None,
-    None,
-    None,
-
-    None,
-    None,
-    None,
-    None,
-
-    # scroll strip, up/down
-    # even though the Kamvas 22 (2019) has two scroll strips, they both send
-    # the same button codes
-    None,
-    None,
-]
+BUTTON_BINDINGS = {}
 
 def main():
     xdo = lib.xdo_new(ffi.NULL)
@@ -38,12 +12,15 @@ def main():
     if hidraw_path is None:
         print("Could not find tablet hidraw device")
     print("Found tablet at " + hidraw_path)
-    read_config(os.path.expanduser('~/.config/huion_keys.conf'))
+    if os.path.isfile(CONFIG_FILE_PATH):
+        read_config(CONFIG_FILE_PATH)
+    else:
+        write_default_config(CONFIG_FILE_PATH)
     hidraw = open(hidraw_path, 'rb')
     while True:
         btn = get_button_press(hidraw)
-        print("Got button %d" % (btn,))
-        if BUTTON_BINDINGS[btn]:
+        print("Got button %s" % (btn,))
+        if btn in BUTTON_BINDINGS:
             print("Sending %s" % (BUTTON_BINDINGS[btn],))
             lib.xdo_send_keysequence_window(
                 xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
@@ -77,11 +54,28 @@ def read_config(config_file):
                     # button bindings are 0-indexed so need to subtract one
                     BUTTON_BINDINGS[int(setting)-1] = value.encode('utf-8')
                 elif setting == 'scroll_up':
-                    BUTTON_BINDINGS[16] = value.encode('utf-8')
+                    BUTTON_BINDINGS['scroll_up'] = value.encode('utf-8')
                 elif setting == 'scroll_down':
-                    BUTTON_BINDINGS[17] = value.encode('utf-8')
+                    BUTTON_BINDINGS['scroll_down'] = value.encode('utf-8')
                 else:
                     print("[WARN] unrecognized setting '%s'" % (setting,))
+
+
+def create_default_config(config_file):
+    with open(config_file, 'w') as config:
+        config.write("""
+# use one line for each button you want to configure
+# buttons that aren't in this file will be ignored by this program
+# (but may be handled by another driver)
+4=ctrl+s
+5=ctrl+z
+6=ctrl+shift+equal
+7=ctrl+minus
+# etc. up to the highest button number
+16=tab
+scroll_up=bracketright
+scroll_down=bracketleft
+""")
 
 
 BUTTON_BITS = {
@@ -124,10 +118,10 @@ def get_button_press(hidraw):
                 # value means they scrolled down
                 if scroll_pos > SCROLL_STATE:
                     SCROLL_STATE = scroll_pos
-                    return 17 # scroll down
+                    return 'scroll_down'
                 elif scroll_pos < SCROLL_STATE:
                     SCROLL_STATE = scroll_pos
-                    return 16
+                    return 'scroll_up'
             else:
                 SCROLL_STATE = scroll_pos
                 continue
