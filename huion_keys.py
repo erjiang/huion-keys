@@ -92,7 +92,7 @@ def create_default_config(config_file):
 6=ctrl+shift+equal
 7=ctrl+minus
 # etc. up to the highest button number
-16=tab
+16=Tab
 scroll_up=bracketright
 scroll_down=bracketleft
 """)
