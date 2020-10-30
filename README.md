@@ -18,7 +18,7 @@ Linux utility to create custom key bindings for the Huion Kamvas Pro (2019).
 2. Clone this repository.
 3. Install the Python cffi module (either using Pipenv and the included Pipfile, through your system's package manager, or however you prefer to install Python packages).
 4. Run the `xdo_build.py` script. It should create a file named `_xdo_cffi.cpython-...-linux-gnu.so`.
-5. Run the `huion_keys.py`. It will create an example config file at `~/.config/huion_keys`.
+5. Run `huion_keys.py`. It will create an example config file at `~/.config/huion_keys`.
 6. Edit the config file to set up your key bindings. The key sequences are sent to xdotool, so look at xdotool's documentation for more details. There's also this [handy list of key codes](
     https://gitlab.com/cunidev/gestures/-/wikis/xdotool-list-of-key-codes
 ) that may be helpful.
