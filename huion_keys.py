@@ -115,8 +115,9 @@ def get_button_press(hidraw):
     global SCROLL_STATE
     while True:
         sequence = hidraw.read(12)
-        # don't think there's anything we care about that doesn't start with 0xf7
-        if sequence[0] != 0xf7:
+        # 0xf7 is what my Kamvas Pro 22 reads
+        # another model seems to send 0x08
+        if sequence[0] != 0xf7 and sequence[0] != 0x08:
             pass
         if sequence[1] == 0xe0: # buttons
             # doesn't seem like the tablet will let you push two buttons at once
