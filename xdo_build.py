@@ -88,12 +88,6 @@ typedef struct xdo {
   /** @internal Length of charcodes array */
   int charcodes_len;
 
-  /** @internal UNUSED -- result from XGetModifierMapping */
-  XModifierKeymap *modmap;
-
-  /** @internal UNUSED -- current keyboard mapping (via XGetKeyboardMapping) */
-  KeySym *keymap;
-
   /** @internal highest keycode value */
   int keycode_high; /* highest and lowest keycodes */
 
