@@ -2,7 +2,12 @@ from cffi import FFI
 
 ffibuilder = FFI()
 
-# copied from xdo.h
+# Most of the code in this cdef call was copied from xdo.h from xdotool, which
+# is available under the 3-clause BSD license. Find the original code and
+# license at: https://github.com/jordansissel/xdotool
+#
+# The lines marked "copied from X.h" and "copied from "Xlib.h" were adapted
+# from X.org code.
 ffibuilder.cdef("""
 
 /**
@@ -32,10 +37,6 @@ typedef unsigned long Atom;		/* Also in Xdefs.h */
 // copied from Xlib.h
 struct _XDisplay;
 typedef struct _XDisplay Display;
-typedef struct {
- 	int max_keypermod;	/* The server's max # of keys per modifier */
- 	KeyCode *modifiermap;	/* An 8 by max_keypermod array of modifiers */
-} XModifierKeymap;
 struct Screen;
 
 // based on types.h
