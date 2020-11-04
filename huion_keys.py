@@ -69,8 +69,8 @@ def read_config(config_file):
                 setting = line[:line.find('=')].strip()
                 value = line[line.find('=')+1:].strip()
                 if setting.isdigit():
-                    # button bindings are 0-indexed so need to subtract one
-                    BUTTON_BINDINGS[int(setting)-1] = value.encode('utf-8')
+                    # store button configs with their 1-indexed ID
+                    BUTTON_BINDINGS[int(setting)] = value.encode('utf-8')
                 elif setting == 'scroll_up':
                     BUTTON_BINDINGS['scroll_up'] = value.encode('utf-8')
                 elif setting == 'scroll_down':
@@ -99,14 +99,14 @@ scroll_down=bracketleft
 
 
 BUTTON_BITS = {
-    0x01: 0,
-    0x02: 1,
-    0x04: 2,
-    0x08: 3,
-    0x10: 4,
-    0x20: 5,
-    0x40: 6,
-    0x80: 7,
+    0x01: 1,
+    0x02: 2,
+    0x04: 3,
+    0x08: 4,
+    0x10: 5,
+    0x20: 6,
+    0x40: 7,
+    0x80: 8,
 }
 
 SCROLL_STATE=None
