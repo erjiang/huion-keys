@@ -19,6 +19,8 @@ def main():
     while True:
         hidraw_path = get_tablet_hidraw('256c', '006e')
         if hidraw_path is None:
+            hidraw_path = get_tablet_hidraw('256c', '006d')
+        if hidraw_path is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
             continue
