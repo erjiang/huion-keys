@@ -20,7 +20,7 @@ def main():
     while True:
         hidraw_path = get_tablet_hidraw('256c', '006e')
         if hidraw_path is None:
-            hidraw_path = get_tablet_hidraw('256c', '006d') # H620M
+            hidraw_path = get_tablet_hidraw('256c', '006d') # Q620M
         if hidraw_path is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
@@ -102,7 +102,7 @@ def create_default_config(config_file):
 16=Tab
 scroll_up=bracketright
 scroll_down=bracketleft
-#H620M Dial
+#Q620M Dial
 dial_cw=6
 dial_ccw=4
 """)
@@ -157,7 +157,7 @@ def get_button_press(hidraw):
             else:
                 SCROLL_STATE = scroll_pos
                 continue
-        elif sequence[1] == 0xf1: # dial on H620M, practically 2 buttons
+        elif sequence[1] == 0xf1: # dial on Q620M, practically 2 buttons
             if sequence[5] == 0x1:
                 return 'dial_cw'
             elif sequence[5] == 0xff: 
