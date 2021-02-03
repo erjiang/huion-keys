@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import time
 
@@ -19,7 +20,7 @@ def main():
     while True:
         hidraw_path = get_tablet_hidraw('256c', '006e')
         if hidraw_path is None:
-            hidraw_path = get_tablet_hidraw('256c', '006d')
+            hidraw_path = get_tablet_hidraw('256c', '006d') # H620M
         if hidraw_path is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
@@ -77,6 +78,10 @@ def read_config(config_file):
                     BUTTON_BINDINGS['scroll_up'] = value.encode('utf-8')
                 elif setting == 'scroll_down':
                     BUTTON_BINDINGS['scroll_down'] = value.encode('utf-8')
+                elif setting == 'dial_cw':
+                    BUTTON_BINDINGS['dial_cw'] = value.encode('utf-8')
+                elif setting == 'dial_ccw':
+                    BUTTON_BINDINGS['dial_ccw'] = value.encode('utf-8')
                 elif setting == '':
                     continue # ignore empty line
                 else:
@@ -97,6 +102,9 @@ def create_default_config(config_file):
 16=Tab
 scroll_up=bracketright
 scroll_down=bracketleft
+#H620M Dial
+dial_cw=6
+dial_ccw=4
 """)
 
 
@@ -119,7 +127,8 @@ def get_button_press(hidraw):
         sequence = hidraw.read(12)
         # 0xf7 is what my Kamvas Pro 22 reads
         # another model seems to send 0x08
-        if sequence[0] != 0xf7 and sequence[0] != 0x08:
+        # Q620M reads as 0xf9
+        if sequence[0] != 0xf7 and sequence[0] != 0x08 and sequence[0] != 0xf9:
             pass
         if sequence[1] == 0xe0: # buttons
             # doesn't seem like the tablet will let you push two buttons at once
@@ -148,6 +157,13 @@ def get_button_press(hidraw):
             else:
                 SCROLL_STATE = scroll_pos
                 continue
+        elif sequence[1] == 0xf1: # dial on H620M, practically 2 buttons
+            if sequence[5] == 0x1:
+                return 'dial_cw'
+            elif sequence[5] == 0xff: 
+                return 'dial_ccw'
+        else:
+            continue
 
 
 if __name__ == "__main__":
