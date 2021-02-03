@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from cffi import FFI
 
 ffibuilder = FFI()

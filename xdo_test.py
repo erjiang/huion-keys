@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import time
 
 from _xdo_cffi import ffi, lib
