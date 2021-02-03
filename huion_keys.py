@@ -16,6 +16,7 @@ def main():
         create_default_config(CONFIG_FILE_PATH)
         print("Created an example config file at " + CONFIG_FILE_PATH)
         return 1
+    prev_button = None
     while True:
         hidraw_path = get_tablet_hidraw('256c', '006e')
         if hidraw_path is None:
@@ -38,10 +39,16 @@ def main():
                 time.sleep(3)
                 break
             print("Got button %s" % (btn,))
-            if btn in BUTTON_BINDINGS:
+            if btn == 3:
+                print("Pressing ctrl")
+                lib.xdo_send_keysequence_window_down(xdo, lib.CURRENTWINDOW, b'ctrl', 12000)
+                get_button_release(hidraw)
+                print("Releasing ctrl")
+                lib.xdo_send_keysequence_window_up(xdo, lib.CURRENTWINDOW, b'ctrl', 12000)
+            elif btn in BUTTON_BINDINGS:
                 print("Sending %s" % (BUTTON_BINDINGS[btn],))
                 lib.xdo_send_keysequence_window(
-                    xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 10)
+                    xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 1000)
 
 
 def get_tablet_hidraw(vendor_id, product_id):
@@ -146,6 +153,12 @@ def get_button_press(hidraw):
             else:
                 SCROLL_STATE = scroll_pos
                 continue
+
+def get_button_release(hidraw):
+    while True:
+        sequence = hidraw.read(12)
+        if sequence[1] == 0xe0 and sequence[4] == 0 and sequence[5] == 0:
+            return True
 
 
 if __name__ == "__main__":
