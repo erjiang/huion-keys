@@ -1,6 +1,7 @@
 # huion-keys
 
-Linux utility to create custom key bindings for the Huion Kamvas Pro (2019).
+Linux utility to create custom key bindings for the Huion Kamvas Pro (2019),
+Inspiroy Q620M, and potentially other tablets.
 
 ![Image of Huion Kamvas Pro 22 (2019)](https://prd-huion.oss-accelerate.aliyuncs.com/5/739/kamvas-pro-22-pen-display-01.jpg)
 
@@ -33,3 +34,9 @@ It works by listening on the tablet's hidraw interface for button presses and se
 ## Does it work for other Huion tablets?
 
 I'm not sure what other Huion tablets it works for, but you can open a Github issue if you have a Huion tablet and would like to help add support for it.
+
+The general process for adding a new tablet is:
+
+1. Make the code detect your tablet based on USB Vendor and Product ID (see call to `get_tablet_hidraw()`.
+2. Test all of the buttons, scroll strips, dials, etc.
+3. Add support for any new buttons.
