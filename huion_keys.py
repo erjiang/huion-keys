@@ -29,12 +29,12 @@ def main():
         for device_name, device_id in TABLET_MODELS.items():
             hidraw_path = get_tablet_hidraw(device_id)
             if hidraw_path is not None:
+                print("Found %s at %s" % (device_name, hidraw_path))
                 break
         if hidraw_path is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
             continue
-        print("Found tablet at " + hidraw_path)
         try:
             hidraw = open(hidraw_path, 'rb')
         except PermissionError as e:
