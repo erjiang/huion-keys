@@ -6,9 +6,19 @@ from _xdo_cffi import ffi, lib
 
 CONFIG_FILE_PATH = os.path.expanduser('~/.config/huion_keys.conf')
 
+# List of known tablet models
+TABLET_MODELS = {
+        'Kamvas 22': '256c:006e',
+        'Q620M': '256c:006d',
+}
+
+# The current tablet
+TABLET = None
+
 BUTTON_BINDINGS = {}
 
 def main():
+    global TABLET
     xdo = lib.xdo_new(ffi.NULL)
     if os.path.isfile(CONFIG_FILE_PATH):
         read_config(CONFIG_FILE_PATH)
@@ -19,14 +29,19 @@ def main():
         return 1
     prev_button = None
     while True:
-        hidraw_path = get_tablet_hidraw('256c', '006e')
-        if hidraw_path is None:
-            hidraw_path = get_tablet_hidraw('256c', '006d') # Q620M
-        if hidraw_path is None:
+        for tablet in TABLET_MODELS:
+            VID, PID = TABLET_MODELS[tablet].split(':')
+            hidraw_path = get_tablet_hidraw(VID, PID)
+            if hidraw_path is None:
+                continue
+            else:
+                TABLET = tablet
+                break
+        if TABLET is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
             continue
-        print("Found tablet at " + hidraw_path)
+        print("Found", TABLET, "at " + hidraw_path)
         try:
             hidraw = open(hidraw_path, 'rb')
         except PermissionError as e:
