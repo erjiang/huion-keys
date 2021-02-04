@@ -6,6 +6,11 @@ from _xdo_cffi import ffi, lib
 
 CONFIG_FILE_PATH = os.path.expanduser('~/.config/huion_keys.conf')
 
+TABLET_MODELS = {
+    "Kamvas Pro (2019)": "256c:006e",
+    "Q620M": "256c:006d",
+}
+
 BUTTON_BINDINGS = {}
 
 def main():
@@ -19,9 +24,12 @@ def main():
         return 1
     prev_button = None
     while True:
-        hidraw_path = get_tablet_hidraw('256c', '006e')
-        if hidraw_path is None:
-            hidraw_path = get_tablet_hidraw('256c', '006d') # Q620M
+        hidraw_path = None
+        # search for a known tablet device
+        for device_name, device_id in TABLET_MODELS.items():
+            hidraw_path = get_tablet_hidraw(device_id)
+            if hidraw_path is not None:
+                break
         if hidraw_path is None:
             print("Could not find tablet hidraw device")
             time.sleep(2)
@@ -54,13 +62,13 @@ def main():
                     xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 1000)
 
 
-def get_tablet_hidraw(vendor_id, product_id):
-    """Finds the /dev/hidrawX file that belongs to the given vendor and product ID."""
+def get_tablet_hidraw(device_id):
+    """Finds the /dev/hidrawX file that belongs to the given device ID (in xxxx:xxxx format)."""
     # TODO: is this too fragile?
     hidraws = os.listdir('/sys/class/hidraw')
     for h in hidraws:
         device_path = os.readlink(os.path.join('/sys/class/hidraw', h, 'device'))
-        if ("%s:%s" % (vendor_id.upper(), product_id.upper())) in device_path:
+        if device_id.upper() in device_path:
             # need to confirm that there's "input" because there are two hidraw
             # files listed for the tablet, but only one of them carries the
             # mouse/keyboard input
