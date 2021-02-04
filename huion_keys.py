@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import time
+import signal
 
 from _xdo_cffi import ffi, lib
 
@@ -22,6 +23,7 @@ def main():
         create_default_config(CONFIG_FILE_PATH)
         print("Created an example config file at " + CONFIG_FILE_PATH)
         return 1
+    signal.signal(signal.SIGUSR1, handle_reload_signal) # Reload the config if recieved SIGUSR1
     prev_button = None
     while True:
         hidraw_path = None
@@ -102,6 +104,9 @@ def read_config(config_file):
                 else:
                     print("[WARN] unrecognized setting '%s'" % (setting,))
 
+def handle_reload_signal(signum, frame):
+    print("SIGUSR1 recieved - reloading config..")
+    read_config(CONFIG_FILE_PATH)
 
 def create_default_config(config_file):
     with open(config_file, 'w') as config:
