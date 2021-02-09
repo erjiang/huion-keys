@@ -117,13 +117,14 @@ def read_config(config_file):
         else:
             print("[WARN] unrecognized regular binding '%s'" % (binding,))
     #Same, but for buttons that should be held down
-    for binding in CONFIG['Hold']:
-        if binding.isdigit():
-            BUTTON_BINDINGS_HOLD[int(binding)] = CONFIG['Hold'][binding].encode('utf-8')
-        elif binding == '':
-            continue
-        else:
-            print ("[WARN] unrecognized hold binding '%s'" % (binding,))
+    if 'Hold' in CONFIG:
+        for binding in CONFIG['Hold']:
+            if binding.isdigit():
+                BUTTON_BINDINGS_HOLD[int(binding)] = CONFIG['Hold'][binding].encode('utf-8')
+            elif binding == '':
+                continue
+            else:
+                print ("[WARN] unrecognized hold binding '%s'" % (binding,))
     # Assume that if cycle is assigned we have modes for now
     if 'Dial' in CONFIG:
         CYCLE_BUTTON = int(CONFIG['Dial']['cycle'])
