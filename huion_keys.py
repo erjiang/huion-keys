@@ -65,7 +65,7 @@ def main():
                if CYCLE_MODE > CYCLE_MODES:
                    CYCLE_MODE = 1
                print("Cycling to mode %s" % (CYCLE_MODE,)) 
-            elif btn in DIAL_MODES[CYCLE_MODE]:
+            elif CYCLE_MODE in DIAL_MODES and btn in DIAL_MODES[CYCLE_MODE]:
                 print("Sending %s from Mode %d" % (DIAL_MODES[CYCLE_MODE][btn], CYCLE_MODE),)
                 lib.xdo_send_keysequence_window(
                         xdo, lib.CURRENTWINDOW, DIAL_MODES[CYCLE_MODE][btn], 1000)
