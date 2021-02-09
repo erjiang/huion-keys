@@ -60,13 +60,13 @@ def main():
                 time.sleep(3)
                 break
             print("Got button %s" % (btn,))
-            if btn == CYCLE_BUTTON:
+            if btn == CYCLE_BUTTON and CYCLE_BUTTON is not None:
                CYCLE_MODE = CYCLE_MODE + 1 
                if CYCLE_MODE > CYCLE_MODES:
                    CYCLE_MODE = 1
                print("Cycling to mode %s" % (CYCLE_MODE,)) 
             elif btn in DIAL_MODES[CYCLE_MODE]:
-                print("Sinding %s from Mode %d" % (DIAL_MODES[CYCLE_MODE][btn], CYCLE_MODE),)
+                print("Sending %s from Mode %d" % (DIAL_MODES[CYCLE_MODE][btn], CYCLE_MODE),)
                 lib.xdo_send_keysequence_window(
                         xdo, lib.CURRENTWINDOW, DIAL_MODES[CYCLE_MODE][btn], 1000)
             elif btn in BUTTON_BINDINGS_HOLD:
@@ -167,8 +167,8 @@ cycle = 9
 dial_cw=6
 dial_ccw=4
 [Mode 2]
-dial_cw=bracketright
-dial_ccw=bracketleft
+dial_cw=minus
+dial_ccw=equal
 """)
 
 
