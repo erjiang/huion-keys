@@ -2,10 +2,12 @@
 import os
 import time
 import signal
+import configparser
 
 from _xdo_cffi import ffi, lib
 
 CONFIG_FILE_PATH = os.path.expanduser('~/.config/huion_keys.conf')
+CONFIG = configparser.ConfigParser()
 
 TABLET_MODELS = {
     "Kamvas Pro (2019)": "256c:006e",
@@ -13,8 +15,14 @@ TABLET_MODELS = {
 }
 
 BUTTON_BINDINGS = {}
+BUTTON_BINDINGS_HOLD = {}
+CYCLE_BUTTON = None
+CYCLE_MODE = 1
+CYCLE_MODES = 1
+DIAL_MODES = {} 
 
 def main():
+    global CYCLE_MODES, CYCLE_MODE, CYCLE_BUTTON
     xdo = lib.xdo_new(ffi.NULL)
     if os.path.isfile(CONFIG_FILE_PATH):
         read_config(CONFIG_FILE_PATH)
@@ -52,12 +60,21 @@ def main():
                 time.sleep(3)
                 break
             print("Got button %s" % (btn,))
-            if btn == 3:
-                print("Pressing ctrl")
-                lib.xdo_send_keysequence_window_down(xdo, lib.CURRENTWINDOW, b'ctrl', 12000)
+            if btn == CYCLE_BUTTON:
+               CYCLE_MODE = CYCLE_MODE + 1 
+               if CYCLE_MODE > CYCLE_MODES:
+                   CYCLE_MODE = 1
+               print("Cycling to mode %s" % (CYCLE_MODE,)) 
+            elif btn in DIAL_MODES[CYCLE_MODE]:
+                print("Sinding %s from Mode %d" % (DIAL_MODES[CYCLE_MODE][btn], CYCLE_MODE),)
+                lib.xdo_send_keysequence_window(
+                        xdo, lib.CURRENTWINDOW, DIAL_MODES[CYCLE_MODE][btn], 1000)
+            elif btn in BUTTON_BINDINGS_HOLD:
+                print("Pressing %s" % (BUTTON_BINDINGS_HOLD[btn],))
+                lib.xdo_send_keysequence_window_down(xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
                 get_button_release(hidraw)
-                print("Releasing ctrl")
-                lib.xdo_send_keysequence_window_up(xdo, lib.CURRENTWINDOW, b'ctrl', 12000)
+                print("Releasing %s" % (BUTTON_BINDINGS_HOLD[btn],))
+                lib.xdo_send_keysequence_window_up(xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
             elif btn in BUTTON_BINDINGS:
                 print("Sending %s" % (BUTTON_BINDINGS[btn],))
                 lib.xdo_send_keysequence_window(
@@ -80,29 +97,46 @@ def get_tablet_hidraw(device_id):
 
 
 def read_config(config_file):
-    with open(config_file, 'r') as config:
-        for line in config.readlines():
-            # strip out any comment
-            if line.find('#') > -1:
-                line = line[:line.find('#')]
-            if line.find('='):
-                setting = line[:line.find('=')].strip()
-                value = line[line.find('=')+1:].strip()
-                if setting.isdigit():
-                    # store button configs with their 1-indexed ID
-                    BUTTON_BINDINGS[int(setting)] = value.encode('utf-8')
-                elif setting == 'scroll_up':
-                    BUTTON_BINDINGS['scroll_up'] = value.encode('utf-8')
-                elif setting == 'scroll_down':
-                    BUTTON_BINDINGS['scroll_down'] = value.encode('utf-8')
-                elif setting == 'dial_cw':
-                    BUTTON_BINDINGS['dial_cw'] = value.encode('utf-8')
-                elif setting == 'dial_ccw':
-                    BUTTON_BINDINGS['dial_ccw'] = value.encode('utf-8')
-                elif setting == '':
-                    continue # ignore empty line
-                else:
-                    print("[WARN] unrecognized setting '%s'" % (setting,))
+    global CYCLE_MODES, CYCLE_MODE, CYCLE_BUTTON
+    CONFIG.read(config_file)
+    # It is still better for performance to pre-encode these values
+    for binding in CONFIG['Bindings']:
+        if binding.isdigit():
+        # store button configs with their 1-indexed ID
+            BUTTON_BINDINGS[int(binding)] = CONFIG['Bindings'][binding].encode('utf-8')
+        elif binding == 'scroll_up':
+            BUTTON_BINDINGS['scroll_up'] = CONFIG['Bindings'][binding].encode('utf-8')
+        elif binding == 'scroll_down':
+            BUTTON_BINDINGS['scroll_down'] = CONFIG['Bindings'][binding].encode('utf-8')
+        elif binding == 'dial_cw':
+            BUTTON_BINDINGS['dial_cw'] = CONFIG['Bindings'][binding].encode('utf-8')
+        elif binding == 'dial_ccw':
+            BUTTON_BINDINGS['dial_ccw'] = CONFIG['Bindings'][binding].encode('utf-8')
+        elif binding == '':
+            continue # ignore empty line
+        else:
+            print("[WARN] unrecognized regular binding '%s'" % (binding,))
+    #Same, but for buttons that should be held down
+    for binding in CONFIG['Hold']:
+        if binding.isdigit():
+            BUTTON_BINDINGS_HOLD[int(binding)] = CONFIG['Hold'][binding].encode('utf-8')
+        elif binding == '':
+            continue
+        else:
+            print ("[WARN] unrecognized hold binding '%s'" % (binding,))
+    # Assume that if cycle is assigned we have modes for now
+    if 'Dial' in CONFIG:
+        CYCLE_BUTTON = int(CONFIG['Dial']['cycle'])
+        for key in CONFIG:
+            if key.startswith("Mode"):
+                # Count the modes
+                mode = int(key.split(' ')[1]) 
+                if mode > CYCLE_MODES:
+                    CYCLE_MODES = mode
+                DIAL_MODES[mode] = {}
+                for binding in CONFIG[key]:
+                    DIAL_MODES[mode][binding] = CONFIG[key][binding].encode('utf-8')
+
 
 def handle_reload_signal(signum, frame):
     print("SIGUSR1 recieved - reloading config..")
@@ -114,6 +148,7 @@ def create_default_config(config_file):
 # use one line for each button you want to configure
 # buttons that aren't in this file will be ignored by this program
 # (but may be handled by another driver)
+[Bindings]
 4=ctrl+s
 5=ctrl+z
 6=ctrl+shift+equal
@@ -122,9 +157,18 @@ def create_default_config(config_file):
 16=Tab
 scroll_up=bracketright
 scroll_down=bracketleft
+#Buttons that should be held instead of instantly firing
+[Hold]
+3=ctrl
 #Q620M Dial
+[Dial]
+cycle = 9
+[Mode 1]
 dial_cw=6
 dial_ccw=4
+[Mode 2]
+dial_cw=bracketright
+dial_ccw=bracketleft
 """)
 
 
