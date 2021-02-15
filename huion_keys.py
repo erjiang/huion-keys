@@ -2,12 +2,12 @@
 import os
 import time
 import signal
+import argparse
 import configparser
 
 from _xdo_cffi import ffi, lib
 
-CONFIG_FILE_PATH = os.path.expanduser('~/.config/huion_keys.conf')
-CONFIG = configparser.ConfigParser()
+CONFIG_FILE_PATH = None
 
 TABLET_MODELS = {
     "Kamvas Pro (2019)": "256c:006e",
@@ -22,6 +22,22 @@ CYCLE_MODES = 1
 DIAL_MODES = {} 
 
 def main():
+    #Commandline arguments processing
+    parser = argparse.ArgumentParser(
+            description='Linux utility to create custom key bindings for the Huion Kamvas Pro (2019), Inspiroy Q620M, and potentially other tablets.')
+    parser.add_argument('--rules', action='store_true', default=False,
+                    help='print out the udev rules for known tablets and exit')
+    parser.add_argument('-c', '--config', type=str, default='~/.config/huion_keys.conf',
+                    help='location of config file, ~/.config/huion_keys.conf by default')
+    args = parser.parse_args()
+    if args.rules:
+        make_rules()
+        os._exit(0)
+
+    global CONFIG_FILE_PATH
+    #TODO: respect XDG_CONFIG_HOME
+    CONFIG_FILE_PATH = os.path.expanduser(args.config)
+
     global CYCLE_MODES, CYCLE_MODE, CYCLE_BUTTON
     xdo = lib.xdo_new(ffi.NULL)
     if os.path.isfile(CONFIG_FILE_PATH):
@@ -98,6 +114,7 @@ def get_tablet_hidraw(device_id):
 
 def read_config(config_file):
     global CYCLE_MODES, CYCLE_MODE, CYCLE_BUTTON
+    CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
     # It is still better for performance to pre-encode these values
     for binding in CONFIG['Bindings']:
@@ -142,6 +159,12 @@ def read_config(config_file):
 def handle_reload_signal(signum, frame):
     print("SIGUSR1 recieved - reloading config..")
     read_config(CONFIG_FILE_PATH)
+
+def make_rules():
+    for device_name, device_id in TABLET_MODELS.items():
+        print("# %s" % (device_name, ))
+        VID, PID = device_id.split(':')
+        print('KERNEL=="hidraw*", ATTRS{idVendor}=="%s", ATTRS{idProduct}=="%s", MODE="0660", TAG+="uaccess"' % (VID, PID, ))
 
 def create_default_config(config_file):
     with open(config_file, 'w') as config:
