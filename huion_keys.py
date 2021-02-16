@@ -27,7 +27,7 @@ def main():
             description='Linux utility to create custom key bindings for the Huion Kamvas Pro (2019), Inspiroy Q620M, and potentially other tablets.')
     parser.add_argument('--rules', action='store_true', default=False,
                     help='print out the udev rules for known tablets and exit')
-    parser.add_argument('-c', '--config', type=str, default='~/.config/huion_keys.conf',
+    parser.add_argument('-c', '--config', type=str,
                     help='location of config file, ~/.config/huion_keys.conf by default')
     args = parser.parse_args()
     if args.rules:
@@ -35,8 +35,11 @@ def main():
         os._exit(0)
 
     global CONFIG_FILE_PATH
-    #TODO: respect XDG_CONFIG_HOME
-    CONFIG_FILE_PATH = os.path.expanduser(args.config)
+    if args.config is None:
+        CONFIG_FILE_PATH = os.path.expanduser(os.path.join(
+                os.getenv('XDG_CONFIG_HOME', default='~/.config'), 'huion_keys.conf'))
+    else:
+        CONFIG_FILE_PATH = os.path.expanduser(args.config)
 
     global CYCLE_MODES, CYCLE_MODE, CYCLE_BUTTON
     xdo = lib.xdo_new(ffi.NULL)
