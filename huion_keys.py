@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import sys
 import time
 import signal
 import argparse
@@ -33,7 +32,7 @@ def main():
     args = parser.parse_args()
     if args.rules:
         make_rules()
-        sys.exit(0)
+        return 0
 
     global CONFIG_FILE_PATH
     if args.config is None:
