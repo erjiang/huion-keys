@@ -18,7 +18,7 @@ BUTTON_BINDINGS = {}
 BUTTON_BINDINGS_HOLD = {}
 CYCLE_BUTTON = None
 CYCLE_MODES = 1
-DIAL_MODES = {} 
+DIAL_MODES = {}
 
 BUTTON_BITS = {
     0x01: 1,
@@ -30,10 +30,9 @@ BUTTON_BITS = {
     0x40: 7,
     0x80: 8,
 }
- 
 
 def main():
-    #Commandline arguments processing
+    # Commandline arguments processing
     parser = argparse.ArgumentParser(
             description='Linux utility to create custom key bindings for the Huion Kamvas Pro (2019), Inspiroy Q620M, and potentially other tablets.')
     parser.add_argument('--rules', action='store_true', default=False,
@@ -101,7 +100,7 @@ class PollThread(threading.Thread):
         self.cycle_mode = 1
 
     def run(self):
-        global BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD, CYCLE_MODES, CYCLE_BUTTON
+        global BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD, CYCLE_MODES, CYCLE_BUTTON, DIAL_MODES
         while True:
             try:
                 hidraw = open(self.hidraw_path, 'rb')
@@ -120,7 +119,8 @@ class PollThread(threading.Thread):
                 time.sleep(3)
                 break
             print("Got button %s" % (btn,))
-            print(BUTTON_BINDINGS)
+            print(CYCLE_MODES)
+            print(self.cycle_mode)
             if btn == CYCLE_BUTTON and CYCLE_BUTTON is not None:
                 self.cycle_mode = self.cycle_mode + 1 
                 if self.cycle_mode > CYCLE_MODES:
@@ -135,7 +135,7 @@ class PollThread(threading.Thread):
                     lib.xdo_send_keysequence_window_down(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
                     self.get_button_release(hidraw)
                     print("Releasing %s" % (BUTTON_BINDINGS_HOLD[btn],))
-                    lib.xdo_send_keysequence_window_up(xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
+                    lib.xdo_send_keysequence_window_up(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
                 elif btn in BUTTON_BINDINGS:
                     print("Sending %s" % (BUTTON_BINDINGS[btn],))
                     lib.xdo_send_keysequence_window(
