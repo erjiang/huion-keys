@@ -62,30 +62,31 @@ def main():
 
     hidraw_paths = []
     while True:
-        # search for a known tablet device
+        # search for a known tablet devices
         for device_name, device_id in TABLET_MODELS.items():
             hidraw_path = get_tablet_hidraw(device_id)
             if hidraw_path is not None:
+                print("Found %s at %s" % (device_name, hidraw_path))
                 hidraw_paths = hidraw_paths + hidraw_path
-        if hidraw_paths:
-            print("Found %s at %s" % (device_name, hidraw_paths))
-            break
-        elif not hidraw_paths:
+        if not hidraw_paths:
             print("Could not find any tablet hidraw devices")
-            time.sleep(2)
+            time.sleep(3)
+            continue
+        elif hidraw_paths:
+            threads = []
+            for hidraw_path in hidraw_paths:
+                thread = PollThread(hidraw_path)
+                # Do not let the threads to continue if main script is terminated
+                thread.daemon = True
+                threads.append(thread)
+                thread.start()
+            # TODO: Maybe should be reworked for the edge case of having more than one tablet connected at the same time.
+            for thread in threads:
+                thread.join()
+            hidraw_paths.clear()
             continue
 
-    threads = []
-    for hidraw_path in hidraw_paths:
-        thread = PollThread(hidraw_path)
-        thread.daemon = True
-        threads.append(thread)
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-
+  
 class PollThread(threading.Thread):
 
     cycle_mode = None
@@ -115,8 +116,7 @@ class PollThread(threading.Thread):
             try:
                 btn = self.get_button_press(hidraw)
             except OSError as e:
-                print("Lost connection with the tablet - searching for tablet...")
-                time.sleep(3)
+                print("%s lost connection with the tablet..." % (self.name,))
                 break
             print("Got button %s" % (btn,))
             if btn == CYCLE_BUTTON and CYCLE_BUTTON is not None:
