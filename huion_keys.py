@@ -31,6 +31,7 @@ BUTTON_BITS = {
     0x80: 8,
 }
 
+
 def main():
     # Commandline arguments processing
     parser = argparse.ArgumentParser(
@@ -66,14 +67,13 @@ def main():
             hidraw_path = get_tablet_hidraw(device_id)
             if hidraw_path is not None:
                 hidraw_paths = hidraw_paths + hidraw_path
-            
         if hidraw_paths:
             print("Found %s at %s" % (device_name, hidraw_paths))
             break
         elif not hidraw_paths:
             print("Could not find any tablet hidraw devices")
             time.sleep(2)
-            continue 
+            continue
 
     threads = []
     for hidraw_path in hidraw_paths:
@@ -85,14 +85,14 @@ def main():
     for thread in threads:
         thread.join()
 
+
 class PollThread(threading.Thread):
 
     cycle_mode = None
+    scroll_state = None
     hidraw_path = None
     xdo = None
-   
-    SCROLL_STATE=None
- 
+
     def __init__(self, hidraw_path):
         super(PollThread, self).__init__()
         self.xdo = lib.xdo_new(ffi.NULL)
@@ -111,7 +111,7 @@ class PollThread(threading.Thread):
                 time.sleep(5)
                 continue
 
-        while True: 
+        while True:
             try:
                 btn = self.get_button_press(hidraw)
             except OSError as e:
@@ -119,29 +119,27 @@ class PollThread(threading.Thread):
                 time.sleep(3)
                 break
             print("Got button %s" % (btn,))
-            print(CYCLE_MODES)
-            print(self.cycle_mode)
             if btn == CYCLE_BUTTON and CYCLE_BUTTON is not None:
-                self.cycle_mode = self.cycle_mode + 1 
+                self.cycle_mode = self.cycle_mode + 1
                 if self.cycle_mode > CYCLE_MODES:
                     self.cycle_mode = 1
-                    print("Cycling to mode %s" % (self.cycle_mode,)) 
-                elif self.cycle_mode in DIAL_MODES and btn in DIAL_MODES[self.cycle_mode]:
-                    print("Sending %s from Mode %d" % (DIAL_MODES[self.cycle_mode][btn], self.cycle_mode),)
-                    lib.xdo_send_keysequence_window(
+                print("Cycling to mode %s" % (self.cycle_mode,))
+            elif self.cycle_mode in DIAL_MODES and btn in DIAL_MODES[self.cycle_mode]:
+                print("Sending %s from Mode %d" % (DIAL_MODES[self.cycle_mode][btn], self.cycle_mode),)
+                lib.xdo_send_keysequence_window(
                             self.xdo, lib.CURRENTWINDOW, DIAL_MODES[self.cycle_mode][btn], 1000)
-                elif btn in BUTTON_BINDINGS_HOLD:
-                    print("Pressing %s" % (BUTTON_BINDINGS_HOLD[btn],))
-                    lib.xdo_send_keysequence_window_down(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
-                    self.get_button_release(hidraw)
-                    print("Releasing %s" % (BUTTON_BINDINGS_HOLD[btn],))
-                    lib.xdo_send_keysequence_window_up(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
-                elif btn in BUTTON_BINDINGS:
-                    print("Sending %s" % (BUTTON_BINDINGS[btn],))
-                    lib.xdo_send_keysequence_window(
-                        self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 1000)
-   
-    def get_button_press(self,hidraw):
+            elif btn in BUTTON_BINDINGS_HOLD:
+                print("Pressing %s" % (BUTTON_BINDINGS_HOLD[btn],))
+                lib.xdo_send_keysequence_window_down(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
+                self.get_button_release(hidraw)
+                print("Releasing %s" % (BUTTON_BINDINGS_HOLD[btn],))
+                lib.xdo_send_keysequence_window_up(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
+            elif btn in BUTTON_BINDINGS:
+                print("Sending %s" % (BUTTON_BINDINGS[btn],))
+                lib.xdo_send_keysequence_window(
+                    self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 1000)
+
+    def get_button_press(self, hidraw):
         while True:
             sequence = hidraw.read(12)
             # 0xf7 is what my Kamvas Pro 22 reads
@@ -149,7 +147,7 @@ class PollThread(threading.Thread):
             # Q620M reads as 0xf9
             if sequence[0] != 0xf7 and sequence[0] != 0x08 and sequence[0] != 0xf9:
                 pass
-            if sequence[1] == 0xe0: # buttons
+            if sequence[1] == 0xe0:  # buttons
                 # doesn't seem like the tablet will let you push two buttons at once
                 if sequence[4] > 0:
                     return BUTTON_BITS[sequence[4]]
@@ -159,42 +157,43 @@ class PollThread(threading.Thread):
                 else:
                     # must be button release (all zeros)
                     continue
-            elif sequence[1] == 0xf0: # scroll strip
+            elif sequence[1] == 0xf0:  # scroll strip
                 scroll_pos = sequence[5]
                 if scroll_pos == 0:
                     # reset scroll state after lifting finger off scroll strip
-                    self.SCROLL_STATE = None
-                elif self.SCROLL_STATE is not None:
+                    self.scroll_state = None
+                elif self.scroll_state is not None:
                     # scroll strip is numbered from top to bottom so a greater new
                     # value means they scrolled down
-                    if scroll_pos > self.SCROLL_STATE:
-                        self.SCROLL_STATE = scroll_pos
+                    if scroll_pos > self.scroll_state:
+                        self.scroll_state = scroll_pos
                         return 'scroll_down'
-                    elif scroll_pos < self.SCROLL_STATE:
-                        self.SCROLL_STATE = scroll_pos
+                    elif scroll_pos < self.scroll_state:
+                        self.scroll_state = scroll_pos
                         return 'scroll_up'
                 else:
-                    self.SCROLL_STATE = scroll_pos
+                    self.scroll_state = scroll_pos
                     continue
-            elif sequence[1] == 0xf1: # dial on Q620M, practically 2 buttons
+            elif sequence[1] == 0xf1:  # dial on Q620M, practically 2 buttons
                 if sequence[5] == 0x1:
                     return 'dial_cw'
-                elif sequence[5] == 0xff: 
+                elif sequence[5] == 0xff:
                     return 'dial_ccw'
             else:
                 continue
-    
-    def get_button_release(self,hidraw):
+
+    def get_button_release(self, hidraw):
         while True:
             sequence = hidraw.read(12)
             if sequence[1] == 0xe0 and sequence[4] == 0 and sequence[5] == 0:
                 return True
 
+
 def get_tablet_hidraw(device_id):
     """Finds the /dev/hidrawX file or files that belong to the given device ID (in xxxx:xxxx format)."""
     # TODO: is this too fragile?
     hidraws = os.listdir('/sys/class/hidraw')
-    inputs = [];
+    inputs = []
     for h in hidraws:
         device_path = os.readlink(os.path.join('/sys/class/hidraw', h, 'device'))
         if device_id.upper() in device_path:
@@ -215,7 +214,7 @@ def read_config(config_file):
     # It is still better for performance to pre-encode these values
     for binding in CONFIG['Bindings']:
         if binding.isdigit():
-        # store button configs with their 1-indexed ID
+            # store button configs with their 1-indexed ID
             BUTTON_BINDINGS[int(binding)] = CONFIG['Bindings'][binding].encode('utf-8')
         elif binding == 'scroll_up':
             BUTTON_BINDINGS['scroll_up'] = CONFIG['Bindings'][binding].encode('utf-8')
@@ -226,10 +225,10 @@ def read_config(config_file):
         elif binding == 'dial_ccw':
             BUTTON_BINDINGS['dial_ccw'] = CONFIG['Bindings'][binding].encode('utf-8')
         elif binding == '':
-            continue # ignore empty line
+            continue  # ignore empty line
         else:
             print("[WARN] unrecognized regular binding '%s'" % (binding,))
-    #Same, but for buttons that should be held down
+    # Same, but for buttons that should be held down
     if 'Hold' in CONFIG:
         for binding in CONFIG['Hold']:
             if binding.isdigit():
@@ -237,25 +236,27 @@ def read_config(config_file):
             elif binding == '':
                 continue
             else:
-                print ("[WARN] unrecognized hold binding '%s'" % (binding,))
+                print("[WARN] unrecognized hold binding '%s'" % (binding,))
     # Assume that if cycle is assigned we have modes for now
     if 'Dial' in CONFIG:
         CYCLE_BUTTON = int(CONFIG['Dial']['cycle'])
         for key in CONFIG:
             if key.startswith("Mode"):
                 # Count the modes
-                mode = int(key.split(' ')[1]) 
+                mode = int(key.split(' ')[1])
                 if mode > CYCLE_MODES:
                     CYCLE_MODES = mode
                 DIAL_MODES[mode] = {}
                 for binding in CONFIG[key]:
                     DIAL_MODES[mode][binding] = CONFIG[key][binding].encode('utf-8')
 
+
 def make_rules():
     for device_name, device_id in TABLET_MODELS.items():
         print("# %s" % (device_name, ))
         VID, PID = device_id.split(':')
         print('KERNEL=="hidraw*", ATTRS{idVendor}=="%s", ATTRS{idProduct}=="%s", MODE="0660", TAG+="uaccess"' % (VID, PID, ))
+
 
 def create_default_config(config_file):
     with open(config_file, 'w') as config:
@@ -285,6 +286,7 @@ dial_ccw=4
 dial_cw=minus
 dial_ccw=equal
 """)
+
 
 if __name__ == "__main__":
     main()
