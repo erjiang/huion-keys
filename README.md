@@ -23,7 +23,7 @@ Inspiroy Q620M, and potentially other tablets.
 6. Edit the config file to set up your key bindings. See the below section for more instructions. 
 7. Install the udev rules to set up permissions for the tablet. This program
    can generate the udev rules for you, so you can do something like:
-   `python huion_keys.py > /etc/udev/rules.d/50-huion-tablet.rules`
+   `python huion_keys.py --rules > /etc/udev/rules.d/50-huion-tablet.rules`
 
    Alternatively, you can run `huion_keys.py` as root or give yourself read permission for your tablet's hidraw file. For example:
    `chmod o+r /dev/hidraw3`
