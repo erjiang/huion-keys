@@ -85,3 +85,14 @@ The general process for adding a new tablet is:
 1. Make the code detect your tablet based on USB Vendor and Product ID (see call to `get_tablet_hidraw()`.
 2. Test all of the buttons, scroll strips, dials, etc.
 3. Add support for any new buttons.
+
+
+## Known Issues
+
+### On some keyboard layouts, the keys sent by this program are incorrect
+
+For example, on a Dvorak layout, this application may report that it sent "F"
+but it actually results in a "Y" keypress.
+
+As a workaround, try running `setxkbmap` without any arguments before running
+this program.
