@@ -12,6 +12,7 @@ CONFIG_FILE_PATH = None
 TABLET_MODELS = {
     "Kamvas Pro (2019)": "256c:006e",
     "Q620M": "256c:006d",
+    "H320M": "256c:006d"
 }
 
 BUTTON_BINDINGS = {}
@@ -64,7 +65,7 @@ def main():
     while True:
         # search for a known tablet devices
         for device_name, device_id in TABLET_MODELS.items():
-            hidraw_path = get_tablet_hidraw(device_id)
+            hidraw_path = get_tablet_hidraw(device_id, device_name)
             if hidraw_path is not None:
                 print("Found %s at %s" % (device_name, hidraw_path))
                 hidraw_paths = hidraw_paths + hidraw_path
@@ -189,19 +190,25 @@ class PollThread(threading.Thread):
                 return True
 
 
-def get_tablet_hidraw(device_id):
+def get_tablet_hidraw(device_id, device_name):
     """Finds the /dev/hidrawX file or files that belong to the given device ID (in xxxx:xxxx format)."""
     # TODO: is this too fragile?
     hidraws = os.listdir('/sys/class/hidraw')
     inputs = []
     for h in hidraws:
         device_path = os.readlink(os.path.join('/sys/class/hidraw', h, 'device'))
+        
         if device_id.upper() in device_path:
             # need to confirm that there's "input" because there are two or more hidraw
             # files listed for the tablet, but only few of them carry the
             # mouse/keyboard input
-            if os.path.exists(os.path.join('/sys/class/hidraw', h, 'device/input')):
-                inputs.append(os.path.join('/dev', os.path.basename(h)))
+            path = os.path.join('/sys/class/hidraw', h, 'device/input')
+            if os.path.exists(path):
+                entries = os.scandir(path)
+                for entry in entries:
+                    if device_name.lower() in open(os.path.join(entry, 'name')).read().lower() :
+                        inputs.append(os.path.join('/dev', os.path.basename(h)))
+                        break
     if inputs:
         return inputs
     return None
