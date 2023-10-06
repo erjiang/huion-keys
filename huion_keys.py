@@ -255,8 +255,8 @@ def read_config(config_file):
                     CYCLE_MODES = mode
                 DIAL_MODES[mode] = {}
                 for binding in CONFIG[key]:
-                    DIAL_MODES[mode][binding] = CONFIG[key][binding].encode('utf-8')
-
+                    DIAL_MODES[mode][int(binding) if binding.isdigit() else binding] = CONFIG[key][binding].encode('utf-8')
+            print(DIAL_MODES)
 
 def make_rules():
     for device_name, device_id in TABLET_MODELS.items():
