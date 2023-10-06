@@ -4,6 +4,7 @@ import time
 import argparse
 import threading
 import configparser
+import yaml
 
 from _xdo_cffi import ffi, lib
 
@@ -216,11 +217,10 @@ def get_tablet_hidraw(device_id, device_name):
 
 def read_config(config_file):
     global CYCLE_MODES, CYCLE_BUTTON, BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD
-    CONFIG = configparser.ConfigParser()
-    CONFIG.read(config_file)
+    CONFIG = yaml.load(open(config_file, 'r'), yaml.Loader)
     # It is still better for performance to pre-encode these values
     for binding in CONFIG['Bindings']:
-        if binding.isdigit():
+        if type(binding) is int:
             # store button configs with their 1-indexed ID
             BUTTON_BINDINGS[int(binding)] = CONFIG['Bindings'][binding].encode('utf-8')
         elif binding == 'scroll_up':
@@ -238,7 +238,7 @@ def read_config(config_file):
     # Same, but for buttons that should be held down
     if 'Hold' in CONFIG:
         for binding in CONFIG['Hold']:
-            if binding.isdigit():
+            if type(binding) is int:
                 BUTTON_BINDINGS_HOLD[int(binding)] = CONFIG['Hold'][binding].encode('utf-8')
             elif binding == '':
                 continue
@@ -247,15 +247,17 @@ def read_config(config_file):
     # Assume that if cycle is assigned we have modes for now
     if 'Dial' in CONFIG:
         CYCLE_BUTTON = int(CONFIG['Dial']['cycle'])
-        for key in CONFIG:
+        
+        for key in CONFIG['Dial']:
+            print(key)
             if key.startswith("Mode"):
                 # Count the modes
                 mode = int(key.split(' ')[1])
                 if mode > CYCLE_MODES:
                     CYCLE_MODES = mode
                 DIAL_MODES[mode] = {}
-                for binding in CONFIG[key]:
-                    DIAL_MODES[mode][int(binding) if binding.isdigit() else binding] = CONFIG[key][binding].encode('utf-8')
+                for binding in CONFIG['Dial'][key]:
+                    DIAL_MODES[mode][int(binding) if type(binding) is int else binding] = CONFIG['Dial'][key][binding].encode('utf-8')
             print(DIAL_MODES)
 
 def make_rules():
