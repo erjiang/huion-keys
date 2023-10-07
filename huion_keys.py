@@ -245,10 +245,10 @@ def read_config(config_file):
             else:
                 print("[WARN] unrecognized hold binding '%s'" % (binding,))
     # Assume that if cycle is assigned we have modes for now
-    if 'Dial' in CONFIG:
-        CYCLE_BUTTON = int(CONFIG['Dial']['cycle'])
+    if 'Cycle' in CONFIG:
+        CYCLE_BUTTON = int(CONFIG['Cycle']['Switch'])
         
-        for key in CONFIG['Dial']:
+        for key in CONFIG['Cycle']:
             print(key)
             if key.startswith("Mode"):
                 # Count the modes
@@ -256,9 +256,8 @@ def read_config(config_file):
                 if mode > CYCLE_MODES:
                     CYCLE_MODES = mode
                 DIAL_MODES[mode] = {}
-                for binding in CONFIG['Dial'][key]:
-                    DIAL_MODES[mode][int(binding) if type(binding) is int else binding] = CONFIG['Dial'][key][binding].encode('utf-8')
-            print(DIAL_MODES)
+                for binding in CONFIG['Cycle'][key]:
+                    DIAL_MODES[mode][int(binding) if type(binding) is int else binding] = CONFIG['Cycle'][key][binding].encode('utf-8')
 
 def make_rules():
     for device_name, device_id in TABLET_MODELS.items():
@@ -273,29 +272,28 @@ def create_default_config(config_file):
 # use one line for each button you want to configure
 # buttons that aren't in this file will be ignored by this program
 # (but may be handled by another driver)
-[Bindings]
-4=ctrl+s
-5=ctrl+z
-6=ctrl+shift+equal
-7=ctrl+minus
+Bindings:
+  4: ctrl+s
+  5: ctrl+z
+6: ctrl+shift+equal
+7: ctrl+minus
 # etc. up to the highest button number
-16=Tab
-scroll_up=bracketright
-scroll_down=bracketleft
+16: Tab
+scroll_up: bracketright
+scroll_down: bracketleft
 #Buttons that should be held instead of instantly firing
-[Hold]
-3=ctrl
+Hold:
+  3: ctrl
 #Q620M Dial
-[Dial]
-cycle = 9
-[Mode 1]
-dial_cw=6
-dial_ccw=4
-[Mode 2]
-dial_cw=minus
-dial_ccw=equal
+Cycle:
+  Switch: 9
+  "Mode 1":
+    1: ctrl+c
+  "Mode 2":
+    1: ctrl+v
+  "Mode 3":
+    1: ctrl+z
 """)
-
 
 if __name__ == "__main__":
     main()
