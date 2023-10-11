@@ -6,6 +6,7 @@ import threading
 import yaml
 
 from _xdo_cffi import ffi, lib
+from dbus_daemon import DBusThread
 
 CONFIG_FILE_PATH = None
 
@@ -76,6 +77,9 @@ def main():
             continue
         elif hidraw_paths:
             threads = []
+            dbus = DBusThread()
+            dbus.start()
+            threads.append(dbus)
             for hidraw_path in hidraw_paths:
                 thread = PollThread(hidraw_path)
                 # Do not let the threads to continue if main script is terminated
@@ -88,7 +92,7 @@ def main():
             hidraw_paths.clear()
             continue
 
-  
+
 class PollThread(threading.Thread):
 
     cycle_mode = None
