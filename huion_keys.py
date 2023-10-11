@@ -7,6 +7,7 @@ import yaml
 
 from _xdo_cffi import ffi, lib
 from dbus_daemon import DBusThread
+from observable import Observable
 
 CONFIG_FILE_PATH = None
 
@@ -32,7 +33,8 @@ BUTTON_BITS = {
     0x40: 7,
     0x80: 8,
 }
-
+    
+obs = Observable()
 
 def main():
     # Commandline arguments processing
@@ -77,11 +79,11 @@ def main():
             continue
         elif hidraw_paths:
             threads = []
-            dbus = DBusThread()
+            dbus = DBusThread(obs)
             dbus.start()
             threads.append(dbus)
             for hidraw_path in hidraw_paths:
-                thread = PollThread(hidraw_path)
+                thread = PollThread(hidraw_path, obs)
                 # Do not let the threads to continue if main script is terminated
                 thread.daemon = True
                 threads.append(thread)
@@ -100,11 +102,13 @@ class PollThread(threading.Thread):
     hidraw_path = None
     xdo = None
 
-    def __init__(self, hidraw_path):
+    def __init__(self, hidraw_path, obs):
         super(PollThread, self).__init__()
         self.xdo = lib.xdo_new(ffi.NULL)
         self.hidraw_path = hidraw_path
         self.cycle_mode = 1
+        self.obs = obs
+        self.obs.on("events", self.events)
 
     def run(self):
         global BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD, CYCLE_MODES, CYCLE_BUTTON, DIAL_MODES
@@ -203,6 +207,8 @@ class PollThread(threading.Thread):
             if sequence[1] == 0xe0 and sequence[4] == 0 and sequence[5] == 0:
                 return True
 
+    def events(self, arg1):
+        print('event received:', arg1)
 
 def get_tablet_hidraw(device_id, device_name):
     """Finds the /dev/hidrawX file or files that belong to the given device ID (in xxxx:xxxx format)."""

@@ -6,9 +6,14 @@ import threading
 from dbus.mainloop.glib import DBusGMainLoop
 
 class DBusThread(threading.Thread):
-  def __init__(self):
-    super(DBusThread, self).__init__(daemon=True)
+  def __init__(self, obs=None):
+    # dbus.mainloop.glib.threads_init()
     DBusGMainLoop(set_as_default=True)
+    super(DBusThread, self).__init__(daemon=True)
+    time.sleep(1)
+    
+    self.obs = obs
+    self.obs.trigger("events", arg1='asdf')
 
   def tryopen(self):
     try:
@@ -18,12 +23,12 @@ class DBusThread(threading.Thread):
 
   def handle_sleep(self, mode):
     if mode:
-        print("Sleep")
-        self.tryopen()
+        self.obs.trigger("events", arg1=dict(event='suspend'))
+        # self.tryopen()
     else:
-        print("Resume")
         time.sleep(10)
-        self.tryopen()
+        self.obs.trigger("events", arg1=dict(event='resume'))
+        # self.tryopen()
 
   def run(self):
     print("starting dbus")
@@ -34,9 +39,8 @@ class DBusThread(threading.Thread):
         'org.freedesktop.login1.Manager',  # interface
         'org.freedesktop.login1'           # bus name
     )
-    loop = glib.MainLoop()
-    loop.run()
+    glib.MainLoop().run()
 
   def join(self):
-    super().join()
     glib.idle_add(quit)
+    super().join()
