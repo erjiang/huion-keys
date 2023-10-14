@@ -1,3 +1,4 @@
+import time
 import dbus
 from gi.repository import GLib as glib
 import threading
@@ -12,7 +13,7 @@ class DBusThread(threading.Thread):
 
   def handle_sleep(self, mode):
     if mode:
-        self.update.send("Sleep")
+        self.update.send("Suspend")
     else:
         self.update.send('Resume')
 

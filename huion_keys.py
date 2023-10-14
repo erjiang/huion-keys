@@ -106,12 +106,16 @@ class PollThread(threading.Thread):
         self.xdo = lib.xdo_new(ffi.NULL)
         self.hidraw_path = hidraw_path
         self.cycle_mode = 1
+        self.active = True
+        self.update = update
+
         update.subscribe(self.events)
+        
     def run(self):
         global BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD, CYCLE_MODES, CYCLE_BUTTON, DIAL_MODES
         while True:
             try:
-                hidraw = open(self.hidraw_path, 'rb')
+                self.hidraw = open(self.hidraw_path, 'rb')
                 break
             except PermissionError as e:
                 print(e, flush=True)
@@ -119,11 +123,12 @@ class PollThread(threading.Thread):
                 time.sleep(5)
                 continue
 
-        while True:
+        while self.active:
+            print(self.active)
             name = ffi.new("unsigned char *[100]")
             type = ffi.new("int *")
             try:
-                btn = self.get_button_press(hidraw)
+                btn = self.get_button_press(self.hidraw)
             except OSError as e:
                 print("%s lost connection with the tablet..." % (self.name,), flush=True)
                 break
@@ -147,7 +152,7 @@ class PollThread(threading.Thread):
             elif btn in BUTTON_BINDINGS_HOLD:
                 print("Pressing %s" % (BUTTON_BINDINGS_HOLD[btn],), flush=True)
                 lib.xdo_send_keysequence_window_down(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
-                self.get_button_release(hidraw)
+                self.get_button_release(self.hidraw)
                 print("Releasing %s" % (BUTTON_BINDINGS_HOLD[btn],), flush=True)
                 lib.xdo_send_keysequence_window_up(self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS_HOLD[btn], 12000)
             elif btn in BUTTON_BINDINGS:
@@ -155,8 +160,12 @@ class PollThread(threading.Thread):
                 lib.xdo_send_keysequence_window(
                     self.xdo, lib.CURRENTWINDOW, BUTTON_BINDINGS[btn], 1000)
 
+        print("exiting")
+        self.update.unsubscribe(self.events)
+
     def get_button_press(self, hidraw):
-        while True:
+        while self.active:
+            print('reading button press')
             sequence = hidraw.read(12)
             # 0xf7 is what my Kamvas Pro 22 reads
             # another model seems to send 0x08
@@ -199,13 +208,18 @@ class PollThread(threading.Thread):
                 continue
 
     def get_button_release(self, hidraw):
-        while True:
+        while self.active:
+            print('reading button release')
             sequence = hidraw.read(12)
             if sequence[1] == 0xe0 and sequence[4] == 0 and sequence[5] == 0:
                 return True
 
-    def events(self, args):
-        print('event received:', args)
+    def events(self, status):
+        print('event received:', status, self)
+        if status == "Suspend":
+            print('inactivating')
+            self.active = False
+            
 
 def get_tablet_hidraw(device_id, device_name):
     """Finds the /dev/hidrawX file or files that belong to the given device ID (in xxxx:xxxx format)."""
