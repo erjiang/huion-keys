@@ -7,7 +7,7 @@ import yaml
 
 from _xdo_cffi import ffi, lib
 from dbus_daemon import DBusThread
-from observable import Observable
+from update import Update
 
 CONFIG_FILE_PATH = None
 
@@ -33,8 +33,8 @@ BUTTON_BITS = {
     0x40: 7,
     0x80: 8,
 }
-    
-obs = Observable()
+
+update = Update()
 
 def main():
     # Commandline arguments processing
@@ -66,6 +66,8 @@ def main():
         return 1
 
     hidraw_paths = []
+    dbus = DBusThread(update)
+    dbus.start()
     while True:
         # search for a known tablet devices
         for device_name, device_id in TABLET_MODELS.items():
@@ -79,11 +81,8 @@ def main():
             continue
         elif hidraw_paths:
             threads = []
-            dbus = DBusThread(obs)
-            dbus.start()
-            threads.append(dbus)
             for hidraw_path in hidraw_paths:
-                thread = PollThread(hidraw_path, obs)
+                thread = PollThread(hidraw_path, update)
                 # Do not let the threads to continue if main script is terminated
                 thread.daemon = True
                 threads.append(thread)
@@ -102,14 +101,12 @@ class PollThread(threading.Thread):
     hidraw_path = None
     xdo = None
 
-    def __init__(self, hidraw_path, obs):
+    def __init__(self, hidraw_path, update):
         super(PollThread, self).__init__()
         self.xdo = lib.xdo_new(ffi.NULL)
         self.hidraw_path = hidraw_path
         self.cycle_mode = 1
-        self.obs = obs
-        self.obs.on("events", self.events)
-
+        update.subscribe(self.events)
     def run(self):
         global BUTTON_BINDINGS, BUTTON_BINDINGS_HOLD, CYCLE_MODES, CYCLE_BUTTON, DIAL_MODES
         while True:
@@ -207,8 +204,8 @@ class PollThread(threading.Thread):
             if sequence[1] == 0xe0 and sequence[4] == 0 and sequence[5] == 0:
                 return True
 
-    def events(self, arg1):
-        print('event received:', arg1)
+    def events(self, args):
+        print('event received:', args)
 
 def get_tablet_hidraw(device_id, device_name):
     """Finds the /dev/hidrawX file or files that belong to the given device ID (in xxxx:xxxx format)."""

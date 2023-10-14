@@ -1,4 +1,3 @@
-import time
 import dbus
 from gi.repository import GLib as glib
 import threading
@@ -6,32 +5,18 @@ import threading
 from dbus.mainloop.glib import DBusGMainLoop
 
 class DBusThread(threading.Thread):
-  def __init__(self, obs=None):
-    # dbus.mainloop.glib.threads_init()
-    DBusGMainLoop(set_as_default=True)
+  def __init__(self, update):
     super(DBusThread, self).__init__(daemon=True)
-    time.sleep(1)
-    
-    self.obs = obs
-    self.obs.trigger("events", arg1='asdf')
-
-  def tryopen(self):
-    try:
-      print("success open")
-    except Exception as e:
-        print(e)
+    DBusGMainLoop(set_as_default=True)
+    self.update = update
 
   def handle_sleep(self, mode):
     if mode:
-        self.obs.trigger("events", arg1=dict(event='suspend'))
-        # self.tryopen()
+        self.update.send("Sleep")
     else:
-        time.sleep(10)
-        self.obs.trigger("events", arg1=dict(event='resume'))
-        # self.tryopen()
+        self.update.send('Resume')
 
   def run(self):
-    print("starting dbus")
     bus = dbus.SystemBus()                 # connect to system wide dbus
     bus.add_signal_receiver(               # define the signal to listen to
         self.handle_sleep,                      # callback function
@@ -42,5 +27,5 @@ class DBusThread(threading.Thread):
     glib.MainLoop().run()
 
   def join(self):
+    super().join()  #this must be called on first to make sure join is handled before all
     glib.idle_add(quit)
-    super().join()
